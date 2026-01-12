@@ -1,0 +1,120 @@
+---
+title: "Chutes and Ladders"
+author: "Raina Marangattu"
+date: "2026-01-12"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Chutes and Ladders
+Chutes and Ladders (or Snakes and Ladders) is a childhood board game entirely based on the roll of the dice. Players move forward the amount of the die roll. Depending on the space, it can lead you to stay, go up the ladder, or down a chute. The goal of the game is to get to the end of the board on the 100th spot.
+
+![Chutes and Ladders Board](chutes-and-ladders.png)
+
+Due to it's probabilistic nature and heavy inspiration from my STATS 102A (Introduction to Computational Statistics with R) homework, I modeled the board game on R for insights. 
+
+```{r, error = TRUE}
+source("cl_helper.R")
+``` 
+
+## R Representation of Board
+```{r}
+board <- list(dim = c(10, 10), 
+              ladders = data.frame("start" = c(1, 4, 9, 28, 36, 40, 51, 71, 80), 
+                                   "end" = c(38, 14, 31, 84, 44, 42, 67, 91, 100)),
+              chutes = data.frame("start" = c(16,47, 49, 56, 62, 64, 87, 93, 95, 98), 
+                                  "end" = c(6, 26, 11, 53, 19, 60, 24, 73, 75, 78)))
+show_board(board)
+```
+Red arrows represent chutes. Landing at the tail end of the arrow leads to a descend down towards the space on the arrowhead.
+Green arrows represent ladders and advancement Landing at the tail end of the arrow leads to an advancement towards the space on the arrowhead.
+
+\pagebreak
+
+## Monte Carlo Simulation Study
+
+```{r, error = TRUE, cache = TRUE}
+set.seed(5)
+mc10000 <- replicate(10000, play_solo(board, FALSE))
+turns <- unlist(mc10000["turns",])
+```
+Running 10000 Chutes and Ladders games.
+
+### Histogram of Turns
+```{r}
+hist(turns, breaks = 50, col = "darkred")
+```
+
+#### Average number of turns to end game of Chutes and Ladders
+```{r}
+mean(turns)
+```
+On average takes about 40 turns, to complete game of Chutes & Ladders.
+
+However, as seen by the right skewed histogram, the mean is NOT the best estimate. The mean is also skewed due to the extremely large outliers. 
+
+```{r}
+median(turns)
+```
+ Median is 7 turns lower and is better estimate of how many turns the typical chutes and ladders takes.
+ 
+### Barplot on relative frequency of how often each chute is utilized
+```{r}
+freq_chute <- vapply(1:10, function(x) sum(unlist(mc10000["chute_tally",])[seq(x,10000, 10)]), numeric(1))
+barplot(freq_chute/sum(freq_chute), col = "red", xlab = "Chutes Numbers", ylab = "Relative Frequency", names.arg = 1:10)
+```
+
+### Barplot of the relative frequency of how often each ladder is utilized
+```{r}
+freq_ladder <-vapply(1:9, function(x) sum(unlist(mc10000["ladder_tally",])[seq(x,length(unlist(mc10000["ladder_tally",])), 9)]), numeric(1))
+barplot(freq_ladder/sum(freq_ladder), col = "green", xlab = "Ladders Numbers", ylab = "Relative Frequency", names.arg = 1:9)
+```
+\pagebreak
+
+# Heatmaps
+Heatmaps effectively answer question of what the most frequent space is after a certain amount of rolls. 
+
+### Heatmap After 1 Roll
+```{r}
+heatMap_moves(1)
+```
+Die rolls some number 1 - 6, however, the ladders on 1 and 4 offer advancements to the player. All 6, possible spaces have equal probability.
+
+\pagebreak
+
+### Heatmap After 2 Rolls
+```{r}
+heatMap_moves(2)
+```
+Now there is a branching and 20 possible spaces with some more likely than others. The most common are the spaces 6-8 which represent rolling two numbers that add to 6, 7, or 8 in the first and second rolls.
+
+\pagebreak
+
+### Heatmap After 3 Rolls
+```{r}
+heatMap_moves(3)
+```
+Trend of increase variability continues. 11 and 12 is common and follows the 6 - 8 being common for the second dice roll and represents the third dice rolls of 3 - 6. The high frequency of 11 also represents the landing on 49 which would lead to a descend down the chute to 11.
+
+\pagebreak
+
+### Heatmap After 7 Rolls
+```{r}
+heatMap_moves(7)
+```
+Variability continues to increase with more dice rolls. After 7 rolls, we finally see completed games. However some games are still at 6 - 10 due to the chutes.
+
+\pagebreak
+
+### Heatmap After 33 Rolls
+```{r}
+heatMap_moves(33)
+```
+About half games are completed, however there are some games that are still in the earlier part of the board.
+
+
